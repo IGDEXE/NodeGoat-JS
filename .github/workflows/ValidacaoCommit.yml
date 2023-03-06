@@ -2,6 +2,7 @@ name: Validador_Commit
 on:
   push:
     branches: [ DEV ]
+    
   workflow_dispatch:
 jobs:
   build:
