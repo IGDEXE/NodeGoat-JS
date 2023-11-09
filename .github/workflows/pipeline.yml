@@ -1,4 +1,4 @@
-name: Veracode_Basic
+name: Veracode_TL
 on:
   push:
     branches: [ master ]
