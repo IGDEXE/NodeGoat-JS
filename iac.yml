@@ -21,10 +21,6 @@ steps:
 - powershell: |
     Set-ExecutionPolicy AllSigned -Scope Process -Force
     $ProgressPreference = "silentlyContinue"; iex ((New-Object System.Net.WebClient).DownloadString('https://tools.veracode.com/veracode-cli/install.ps1'))
-  displayName: 'Veracode CLI Download'
-  continueOnError: true
-
-- powershell: |
     veracode static scan $(caminhoPacote)
   displayName: 'Veracode PipelineScan'
   continueOnError: true
