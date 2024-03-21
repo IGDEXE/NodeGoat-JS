@@ -28,14 +28,14 @@ steps:
   continueOnError: true
 
 - powershell: |
-    ./veracode static scan $(caminhoPacote)
+    veracode static scan $(caminhoPacote)
   displayName: 'Veracode PipelineScan'
   env: 
     VERACODE_API_KEY_ID: $(VeracodeID)
     VERACODE_API_KEY_SECRET: $(VeracodeKey)
 
 - powershell: |
-    ./veracode scan --source ./Config --type directory
+    veracode scan --source ./Config --type directory
   displayName: 'Veracode IaC'
   env: 
     VERACODE_API_KEY_ID: $(VeracodeID)
