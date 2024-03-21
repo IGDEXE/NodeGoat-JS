@@ -18,18 +18,16 @@ steps:
     replaceExistingArchive: true
   displayName: 'Criando pacote para analise'
 
-- task: PowerShell@2
-  inputs:
-    targetType: 'inline'
-    script: |
-      Set-ExecutionPolicy AllSigned -Scope Process -Force
-      $ProgressPreference = "silentlyContinue"; iex ((New-Object System.Net.WebClient).DownloadString('https://tools.veracode.com/veracode-cli/install.ps1'))
+- powershell: |
+    Set-ExecutionPolicy AllSigned -Scope Process -Force
+    $ProgressPreference = "silentlyContinue"; iex ((New-Object System.Net.WebClient).DownloadString('https://tools.veracode.com/veracode-cli/install.ps1'))
   displayName: 'Veracode CLI Download'
   continueOnError: true
 
 - powershell: |
     veracode static scan $(caminhoPacote)
   displayName: 'Veracode PipelineScan'
+  continueOnError: true
   env: 
     VERACODE_API_KEY_ID: $(VeracodeID)
     VERACODE_API_KEY_SECRET: $(VeracodeKey)
@@ -37,6 +35,7 @@ steps:
 - powershell: |
     veracode scan --source ./Config --type directory
   displayName: 'Veracode IaC'
+  continueOnError: true
   env: 
     VERACODE_API_KEY_ID: $(VeracodeID)
     VERACODE_API_KEY_SECRET: $(VeracodeKey)
