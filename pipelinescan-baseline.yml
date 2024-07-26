@@ -35,8 +35,8 @@ steps:
     destinationFolder: '$(Build.ArtifactStagingDirectory)'
     cleanDestinationFolder: false
 - script: |
-      ls
-      veracodeBaselineFile=$(ls -1t | grep "^$BASE_NAME" | head -n 1)
+      ls -1t | grep "^$(veracodeAppProfile)" | sort -r
+      veracodeBaselineFile=$(ls -1t | grep "^$(veracodeAppProfile)" | sort -r | head -n 1)
       echo "Antigo baseline: $veracodeBaselineFile"
       echo "##vso[task.setvariable variable=veracodeBaselineFile]$veracodeBaselineFile"
   displayName: 'Validando arquivos de Baseline'
