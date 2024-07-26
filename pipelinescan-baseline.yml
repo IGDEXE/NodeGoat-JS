@@ -30,7 +30,7 @@ steps:
   inputs:
     script: |
       ls
-      FILE=$(ls -1t | grep "$BASE_NAME" | head -n 1)
+      FILE=$(ls -1t | grep "$(veracodeAppProfile)" | head -n 1)
   displayName: 'Validando arquivos de Baseline'
 
 - script: |
@@ -44,7 +44,7 @@ steps:
 - script: |
       ls
       veracodeBaselineFile=$(ls -1t | grep "$BASE_NAME" | head -n 1)
-      echo $veracodeBaselineFile
+      echo "Antigo baseline: $veracodeBaselineFile"
   displayName: 'Validando arquivos de Baseline'
 - script: |
       echo "Novo baseline: $(veracodeNewBaselineFile)"
