@@ -8,6 +8,7 @@ pool:
 variables:
   veracodeAppProfile: $(Build.DefinitionName)
   caminhoPacote: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+  veracodeNewBaselineFile: $(Build.DefinitionName)-$(build.buildNumber).json
 
 steps:
 - task: CmdLine@2
@@ -18,6 +19,8 @@ steps:
 
 - task: S3Download@1
   inputs:
+    awsCredentials: 'AWS Veracode'
+    regionName: 'us-east-2'
     bucketName: 'veracode-igd'
     globExpressions: '**/$(veracodeAppProfile)*.*'
     targetFolder: '.'
@@ -32,6 +35,14 @@ steps:
     destinationFolder: '$(Build.ArtifactStagingDirectory)'
     cleanDestinationFolder: false
 - script: |
-      java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(APIID) -vkey $(APIKEY) --file '$(caminhoPacote)' --issue_details true 
+      echo $(veracodeNewBaselineFile)
+      java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VID) -vkey $(VKEY) --file '$(caminhoPacote)' --issue_details true --json_output_file '$(veracodeNewBaselineFile)'
   displayName: 'Veracode PipelineScan'
   continueOnError: true
+
+- task: S3Upload@1
+  inputs:
+    awsCredentials: 'AWS Veracode'
+    regionName: 'us-east-2'
+    bucketName: 'veracode-igd'
+    globExpressions: '$(veracodeNewBaselineFile)'
