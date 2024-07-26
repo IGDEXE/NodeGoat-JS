@@ -30,6 +30,7 @@ steps:
   inputs:
     script: |
       ls
+      FILE=$(ls -1t | grep "$BASE_NAME" | head -n 1)
   displayName: 'Validando arquivos de Baseline'
 
 - script: |
@@ -41,7 +42,13 @@ steps:
     destinationFolder: '$(Build.ArtifactStagingDirectory)'
     cleanDestinationFolder: false
 - script: |
-      echo $(veracodeNewBaselineFile)
+      ls
+      veracodeBaselineFile=$(ls -1t | grep "$BASE_NAME" | head -n 1)
+      echo $veracodeBaselineFile
+  displayName: 'Validando arquivos de Baseline'
+- script: |
+      echo "Novo baseline: $(veracodeNewBaselineFile)"
+      echo "Antigo baseline: $veracodeBaselineFile"
       java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VID) -vkey $(VKEY) --file '$(caminhoPacote)' --issue_details true --json_output_file '$(veracodeNewBaselineFile)'
   displayName: 'Veracode PipelineScan'
   continueOnError: true
