@@ -51,7 +51,6 @@ steps:
           java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VID) -vkey $(VKEY) --file '$(caminhoPacote)' --issue_details true --json_output_file '$(veracodeNewBaselineFile)'
       fi
   displayName: 'Veracode PipelineScan'
-  continueOnError: true
 
 - task: S3Upload@1
   inputs:
