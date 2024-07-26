@@ -26,6 +26,12 @@ steps:
     targetFolder: '.'
   displayName: 'Fazendo Download do Baseline'
 
+- task: CmdLine@2
+  inputs:
+    script: |
+      ls
+  displayName: 'Validando arquivos de Baseline'
+
 - script: |
     curl -O -L https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
   displayName: 'Download Pipeline Scanner'
