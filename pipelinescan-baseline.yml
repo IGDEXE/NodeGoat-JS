@@ -43,7 +43,14 @@ steps:
 - script: |
       echo "Novo baseline: $(veracodeNewBaselineFile)"
       echo "Antigo baseline: $(veracodeBaselineFile)"
-      java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VID) -vkey $(VKEY) --file '$(caminhoPacote)' --issue_details true --json_output_file '$(veracodeNewBaselineFile)'
+      # Faz a validacao do baseline
+      if [ -f "$(veracodeBaselineFile)" ]; then
+          echo "Utilizando o baseline $(veracodeBaselineFile)"
+          java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VID) -vkey $(VKEY) --file '$(caminhoPacote)' --issue_details true --json_output_file '$(veracodeNewBaselineFile)' --baseline_file "$(veracodeBaselineFile)"
+      else
+          echo "Nao foi localizado nenhum baseline"
+          java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VID) -vkey $(VKEY) --file '$(caminhoPacote)' --issue_details true --json_output_file '$(veracodeNewBaselineFile)'
+      fi
   displayName: 'Veracode PipelineScan'
   continueOnError: true
 
@@ -53,3 +60,4 @@ steps:
     regionName: 'us-east-2'
     bucketName: 'veracode-igd'
     globExpressions: '$(veracodeNewBaselineFile)'
+  displayName: 'Atualizando o Baseline'
