@@ -16,7 +16,12 @@ steps:
       zip -r $(caminhoPacote) . -x '*.svg' '*.pdf' '*.mp4' '*.webm' '*.gif' '*.jpg' '*.ico'
   displayName: 'Criando pacote para analise'
 
-
+- task: S3Download@1
+  inputs:
+    bucketName: 'veracode-igd'
+    globExpressions: '**/$(veracodeAppProfile)*.*'
+    targetFolder: '.'
+  displayName: 'Fazendo Download do Baseline'
 
 - script: |
     curl -O -L https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
