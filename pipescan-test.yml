@@ -52,10 +52,16 @@ steps:
       fi
   displayName: 'Veracode PipelineScan'
 
-- task: S3Upload@1
+# - task: S3Upload@1
+#   inputs:
+#     awsCredentials: '$(AWS-Credentials)'
+#     regionName: 'us-east-2'
+#     bucketName: '$(AWS-bucketName)'
+#     globExpressions: '$(veracodeNewBaselineFile)'
+#   displayName: 'Atualizando o Baseline'
+
+- task: PublishBuildArtifacts@1
   inputs:
-    awsCredentials: '$(AWS-Credentials)'
-    regionName: 'us-east-2'
-    bucketName: '$(AWS-bucketName)'
-    globExpressions: '$(veracodeNewBaselineFile)'
-  displayName: 'Atualizando o Baseline'
+    PathtoPublish: '$(veracodeNewBaselineFile)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
