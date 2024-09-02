@@ -1,4 +1,12 @@
 # Node
+resources:
+  repositories:
+    - repository: TEMPLATES
+      type: git
+      name: TEMPLATES
+      ref: main
+      trigger: none
+
 trigger:
 - master
 
