@@ -1,0 +1,9 @@
+# Node
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - template: TEMPLATES/veracode.yml
