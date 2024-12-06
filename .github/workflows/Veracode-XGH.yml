@@ -1,10 +1,9 @@
-name: Pipeline_Ideal
+name: Veracode_GoHorse
 on:
-  push:
-    branches: [ master ]
-  workflow_dispatch:
+  push
+
 jobs:
-  build:
+  Package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -27,11 +26,11 @@ jobs:
         env:
           SRCCLR_API_TOKEN: ${{ secrets.SCA }} # Lembrar de criar as credenciais no Secrets
         run: |
-          curl -sSL 'https://download.sourceclear.com/ci.sh' | bash -s – scan --update-advisor --allow-dirty
+          curl -sSL 'https://download.sourceclear.com/ci.sh' | bash -s – scan --update-advisor --pull-request --allow-dirty
 
-  Veracode_SAST:
+  Veracode_UploadAndScan:
     runs-on: ubuntu-latest
-    needs: build
+    needs: Package
     steps:
       - name: Download Artefato
         uses: actions/download-artifact@v2
@@ -39,22 +38,23 @@ jobs:
           name: pacoteVeracode
       - uses: veracode/veracode-uploadandscan-action@master # Faz a analise da Veracode
         env:
-          VID: ${{ secrets.VID }} # Lembrar de criar as credenciais no Secrets
-          VKEY: ${{ secrets.VKEY }}
-          AppName: Github Actions - ${{ github.repository }}
+          VeracodeID: ${{ secrets.VeracodeID }} # Lembrar de criar as credenciais no Secrets
+          VeracodeKey: ${{ secrets.VeracodeKey }}
+          AppName: ${{ github.repository }}
         with:
-          vid: '$VID'
-          vkey: '$VKEY'
+          vid: '$VeracodeID'
+          vkey: '$VeracodeKey'
           criticality: 'VeryHigh'
           appname: '$AppName'
-          createsandbox: true
           filepath: 'veracode.zip'
-          deleteIncompleteScan: false
+          deleteIncompleteScan: true
+          scanallnonfataltoplevelmodules: true
+          includenewmodules: true
           version: ${{ github.run_id }}
 
   Veracode_PipelineScan:
     runs-on: ubuntu-latest
-    needs: build
+    needs: Package
     steps:
       - name: Download Artefato
         uses: actions/download-artifact@v2
@@ -62,10 +62,10 @@ jobs:
           name: pacoteVeracode
       - name: Veracode Pipeline Scan
         env:
-          VID: ${{ secrets.VID }} # Lembrar de criar as credenciais no Secrets
-          VKEY: ${{ secrets.VKEY }}
+          VID: ${{ secrets.VeracodeID }} # Lembrar de criar as credenciais no Secrets
+          VKEY: ${{ secrets.VeracodeKey }}
           CaminhoArquivo: './veracode.zip'
         run: |
           curl -sSO https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
           unzip pipeline-scan-LATEST.zip
-          java -jar pipeline-scan.jar -vid $VID -vkey $VKEY -f $CaminhoArquivo --issue_details true
+          java -jar pipeline-scan.jar -vid $VID -vkey $VKEY -f $CaminhoArquivo --issue_details true 
