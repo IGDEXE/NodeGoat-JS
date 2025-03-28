@@ -49,8 +49,8 @@ steps:
     pwsh: true 
     script: |
       # Configura a autenticacao
-      export VERACODE_API_KEY_ID=$(VeracodeID)
-      export VERACODE_API_KEY_SECRET=$(VeracodeKey)
+      $env:VERACODE_API_KEY_ID = "$(VeracodeID)"
+      $env:VERACODE_API_KEY_SECRET = "$(VeracodeKey)"
 
       # Importar o módulo
       $moduloPath = "$(Build.SourcesDirectory)/scripts/mitigationBaseline.psm1"
