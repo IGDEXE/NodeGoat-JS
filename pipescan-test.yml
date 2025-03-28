@@ -41,7 +41,13 @@ steps:
       java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VeracodeID) -vkey $(VeracodeKey) --file '$(caminhoPacote)' --issue_details true || true
   displayName: 'Veracode PipelineScan'
   continueOnError: true
-- script: |
+
+- task: PowerShell@2
+  displayName: 'Veracode Resultados'
+  inputs:
+    targetType: 'inline'
+    pwsh: true 
+    script: |
       # Configura a autenticacao
       export VERACODE_API_KEY_ID=$(VeracodeID)
       export VERACODE_API_KEY_SECRET=$(VeracodeKey)
@@ -57,4 +63,3 @@ steps:
       $pipelineResults = Get-Content "filtered_results.json" | ConvertFrom-Json
       $filterResults = Clear-VeracodeMitigatedFlaws $appMitigatedFlaws $pipelineResults
       Show-VeracodeFlaws $filterResults
-  displayName: 'Veracode Resultados'
