@@ -29,19 +29,6 @@ steps:
 - script: pip install veracode-api-signing
   displayName: 'Instalar Veracode API Signing'
 
-- script: |
-    curl -O -L https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
-  displayName: 'Download Pipeline Scanner'
-- task: ExtractFiles@1
-  inputs:
-    archiveFilePatterns: 'pipeline-scan-LATEST.zip'
-    destinationFolder: '$(Build.ArtifactStagingDirectory)'
-    cleanDestinationFolder: false
-- script: |
-      java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VeracodeID) -vkey $(VeracodeKey) --file '$(caminhoPacote)' --issue_details true || true
-  displayName: 'Veracode PipelineScan'
-  continueOnError: true
-
 - task: PowerShell@2
   displayName: 'Veracode Resultados'
   inputs:
@@ -52,14 +39,13 @@ steps:
       $env:VERACODE_API_KEY_ID = "$(VeracodeID)"
       $env:VERACODE_API_KEY_SECRET = "$(VeracodeKey)"
 
-      # Importar o módulo
-      $moduloPath = "$(Build.SourcesDirectory)/scripts/mitigationBaseline.psm1"
-      Import-Module $moduloPath -Force
-
-      $appProfiles = Get-VeracodeAllApps
-      $appGUID = Get-VeracodeAppGUID "$(veracodeAppProfile)" $appProfiles
-      $appFindings = Get-VeracodeAppFindings $appGUID
-      $appMitigatedFlaws = Get-VeracodeAppMitigatedFlaws $appFindings
-      $pipelineResults = Get-Content "filtered_results.json" | ConvertFrom-Json
-      $filterResults = Clear-VeracodeMitigatedFlaws $appMitigatedFlaws $pipelineResults
-      Show-VeracodeFlaws $filterResults
+      $apiReturn = http --auth-type=veracode_hmac GET "https://api.veracode.com/appsec/v1/applications/?page=0&size=500" | ConvertFrom-Json
+      $pages = $apiReturn.page.total_pages
+      $pageNumber = 0
+      while ($pageNumber -ne $pages) {
+          $apiReturn = http --auth-type=veracode_hmac GET "https://api.veracode.com/appsec/v1/applications/?page=$pageNumber&size=500" | ConvertFrom-Json
+          $appProfiles += $apiReturn._embedded.applications
+          # Incrementar o contador
+          $pageNumber++
+      }
+      return $appProfiles
