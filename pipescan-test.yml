@@ -21,12 +21,8 @@ steps:
 - task: CmdLine@2
   inputs:
     script: |
-      ls
-      cd $(Build.SourcesDirectory)/scripts
-      ls
-  displayName: 'DEBUG'
-
-- script: pip install veracode-api-signing
+      pip install veracode-api-signing
+      pip install httpie
   displayName: 'Instalar Veracode API Signing'
 
 - task: PowerShell@2
