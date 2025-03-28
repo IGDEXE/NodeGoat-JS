@@ -1,3 +1,6 @@
+# Para testar, recomendo a utilização do projeto NodeGoat
+# Disponivel em: https://github.com/IGDEXE/NodeGoat
+
 trigger:
 - master
 
@@ -5,25 +8,15 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  veracodeAppProfile: $(Build.DefinitionName)
+  veracodeAppProfile: "Github Actions - M3Corp-Community/NodeGoat"
   caminhoPacote: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
-  veracodeNewBaselineFile: $(Build.DefinitionName)-$(build.buildNumber).json
 
 steps:
 - task: CmdLine@2
   inputs:
     script: |
-      zip -r $(caminhoPacote) . -x '*.svg' '*.pdf' '*.mp4' '*.webm' '*.gif' '*.jpg' '*.ico'
+      zip -r $(caminhoPacote). -i '*.py' '*.html' '*.htm' '*.asp' '*.cjs' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mjs' '*.mustache' '*.ts' '*.tsx' '*.vue' '*.xhtml' '*.lock' '*.module' '*.inc' '*.html' '*.htm' '*.profile' '*.install' '*.engine' '*.theme' '*.php4' '*.php5' '*.php7' '*.phtml' '*.txt' -x "node_modules/*" ".gitignore"
   displayName: 'Criando pacote para analise'
-
-- task: S3Download@1
-  inputs:
-    awsCredentials: '$(AWS-Credentials)'
-    regionName: 'us-east-2'
-    bucketName: '$(AWS-bucketName)'
-    globExpressions: '**/$(veracodeAppProfile)*.*'
-    targetFolder: '.'
-  displayName: 'Fazendo Download do Baseline'
 
 - script: |
     curl -O -L https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
@@ -34,34 +27,19 @@ steps:
     destinationFolder: '$(Build.ArtifactStagingDirectory)'
     cleanDestinationFolder: false
 - script: |
-      ls -1t | grep "^$(veracodeAppProfile)" | sort -r
-      veracodeBaselineFile=$(ls -1t | grep "^$(veracodeAppProfile)" | sort -r | head -n 1)
-      echo "Antigo baseline: $veracodeBaselineFile"
-      echo "##vso[task.setvariable variable=veracodeBaselineFile]$veracodeBaselineFile"
-  displayName: 'Validando arquivos de Baseline'
-- script: |
-      echo "Novo baseline: $(veracodeNewBaselineFile)"
-      echo "Antigo baseline: $(veracodeBaselineFile)"
-      # Faz a validacao do baseline
-      if [ -f "$(veracodeBaselineFile)" ]; then
-          echo "Utilizando o baseline $(veracodeBaselineFile)"
-          java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VID) -vkey $(VKEY) --file '$(caminhoPacote)' --issue_details true --json_output_file '$(veracodeNewBaselineFile)' --baseline_file "$(veracodeBaselineFile)"
-      else
-          echo "Nao foi localizado nenhum baseline"
-          java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VID) -vkey $(VKEY) --file '$(caminhoPacote)' --issue_details true --json_output_file '$(veracodeNewBaselineFile)'
-      fi
+      java -jar $(Build.ArtifactStagingDirectory)/pipeline-scan.jar -vid $(VeracodeID) -vkey $(VeracodeKey) --file '$(caminhoPacote)' --issue_details true || true
   displayName: 'Veracode PipelineScan'
+  continueOnError: true
+- script: |
+      # Importar o módulo
+      $moduloPath = "./scripts/mitigationBaseline.psm1"
+      Import-Module $moduloPath -Force
 
-# - task: S3Upload@1
-#   inputs:
-#     awsCredentials: '$(AWS-Credentials)'
-#     regionName: 'us-east-2'
-#     bucketName: '$(AWS-bucketName)'
-#     globExpressions: '$(veracodeNewBaselineFile)'
-#   displayName: 'Atualizando o Baseline'
-
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(veracodeNewBaselineFile)'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
+      $appProfiles = Get-VeracodeAllApps
+      $appGUID = Get-VeracodeAppGUID "$(veracodeAppProfile)" $appProfiles
+      $appFindings = Get-VeracodeAppFindings $appGUID
+      $appMitigatedFlaws = Get-VeracodeAppMitigatedFlaws $appFindings
+      $pipelineResults = Get-Content "filtered_results.json" | ConvertFrom-Json
+      $filterResults = Clear-VeracodeMitigatedFlaws $appMitigatedFlaws $pipelineResults
+      Show-VeracodeFlaws $filterResults
+  displayName: 'Veracode Resultados'
