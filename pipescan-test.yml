@@ -18,6 +18,17 @@ steps:
       zip -r $(caminhoPacote) . -i '*.py' '*.html' '*.htm' '*.asp' '*.cjs' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mjs' '*.mustache' '*.ts' '*.tsx' '*.vue' '*.xhtml' '*.lock' '*.module' '*.inc' '*.html' '*.htm' '*.profile' '*.install' '*.engine' '*.theme' '*.php4' '*.php5' '*.php7' '*.phtml' '*.txt' -x "node_modules/*" ".gitignore"
   displayName: 'Criando pacote para analise'
 
+- task: CmdLine@2
+  inputs:
+    script: |
+      ls
+      cd $(Build.SourcesDirectory)/scripts
+      ls
+  displayName: 'DEBUG'
+
+- script: pip install veracode-api-signing
+  displayName: 'Instalar Veracode API Signing'
+
 - script: |
     curl -O -L https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
   displayName: 'Download Pipeline Scanner'
@@ -31,8 +42,12 @@ steps:
   displayName: 'Veracode PipelineScan'
   continueOnError: true
 - script: |
+      # Configura a autenticacao
+      export VERACODE_API_KEY_ID=$(VeracodeID)
+      export VERACODE_API_KEY_SECRET=$(VeracodeKey)
+
       # Importar o módulo
-      $moduloPath = "./scripts/mitigationBaseline.psm1"
+      $moduloPath = "$(Build.SourcesDirectory)/scripts/mitigationBaseline.psm1"
       Import-Module $moduloPath -Force
 
       $appProfiles = Get-VeracodeAllApps
