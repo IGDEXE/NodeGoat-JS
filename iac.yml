@@ -12,13 +12,13 @@ stages:
       inputs:
         script: |
           set -e
-          WORKDIR="$(Build.SourcesDirectory)/veracode-artifacts"
+          WORKDIR="./veracode-artifacts"
           rm -rf "$WORKDIR"
           mkdir -p "$WORKDIR"
 
           echo "Generating Veracode packages..."
           ./veracode package \
-            --source "$(Build.SourcesDirectory)" \
+            --source "." \
             --output "$WORKDIR"
 
           cd "$WORKDIR"
