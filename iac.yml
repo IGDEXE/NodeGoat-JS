@@ -37,6 +37,6 @@ stages:
       displayName: 'Veracode IaC'
 
     - script: |
-          ./veracode static scan -vid $(VERACODE_API_KEY_ID) -vkey $(VERACODE_API_KEY_SECRET) --file '$(caminhoPacote)' --issue_details true 
+          ./veracode static scan "$(caminhoPacote)" 
       displayName: 'Veracode SAST'
       continueOnError: true
