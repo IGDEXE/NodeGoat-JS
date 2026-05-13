@@ -17,9 +17,7 @@ stages:
           mkdir -p "$WORKDIR"
 
           echo "Generating Veracode packages..."
-          ./veracode package \
-            --source "." \
-            --output "$WORKDIR"
+          ./veracode package --source "." --output "$WORKDIR" --verbose
 
           cd "$WORKDIR"
           ZIP_COUNT=$(find . -maxdepth 1 -name "*.zip" | wc -l)
