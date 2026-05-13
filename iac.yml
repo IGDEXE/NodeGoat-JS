@@ -7,7 +7,7 @@ stages:
     - script: |
         curl -fsS https://tools.veracode.com/veracode-cli/install | sh
       displayName: 'Download Veracode CLI'
-      
+
     - task: CmdLine@2
       inputs:
         script: |
@@ -17,7 +17,7 @@ stages:
           mkdir -p "$WORKDIR"
 
           echo "Generating Veracode packages..."
-          veracode package \
+          ./veracode package \
             --source "$(Build.SourcesDirectory)" \
             --output "$WORKDIR"
 
