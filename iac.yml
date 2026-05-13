@@ -7,7 +7,51 @@ stages:
     - task: CmdLine@2
       inputs:
         script: |
-          zip -r $(caminhoPacote) . -i '*.py' '*.html' '*.htm' '*.asp' '*.cjs' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mjs' '*.mustache' '*.ts' '*.tsx' '*.vue' '*.xhtml' '*.lock' '*.module' '*.inc' '*.profile' '*.install' '*.engine' '*.theme' '*.php4' '*.php5' '*.php7' '*.phtml' '*.txt' -x '*/node_modules/*' '*/.git/*' '*/dist/*'
+          set -e
+          WORKDIR="$(Build.SourcesDirectory)/veracode-artifacts"
+          rm -rf "$WORKDIR"
+          mkdir -p "$WORKDIR"
+
+          echo "Generating Veracode packages..."
+          veracode package \
+            --source "$(Build.SourcesDirectory)" \
+            --output "$WORKDIR"
+
+          cd "$WORKDIR"
+          ZIP_COUNT=$(find . -maxdepth 1 -name "*.zip" | wc -l)
+          echo "ZIPs generated: $ZIP_COUNT"
+          if [ "$ZIP_COUNT" -eq 0 ]; then
+            echo "No ZIP generated."
+            exit 1
+          fi
+
+          if [ "$ZIP_COUNT" -eq 1 ]; then
+            ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+            echo "Only one ZIP found:"
+            echo "$ZIP_FILE"
+            mv "$ZIP_FILE" veracode-unified.zip
+
+          else
+            echo "Merging ZIPs..."
+            mkdir merged
+
+            for zip in *.zip; do
+              TEMP_DIR=$(mktemp -d)
+              echo "Extracting $zip"
+              unzip -q "$zip" -d "$TEMP_DIR"
+              cp -R "$TEMP_DIR"/. merged/
+              rm -rf "$TEMP_DIR"
+            done
+
+            cd merged
+            zip -r ../veracode-unified.zip .
+            cd ..
+
+            echo "Unified ZIP created."
+          fi
+
+          echo "Final artifact:"
+          ls -lh veracode-unified.zip
       displayName: 'Criando pacote para analise'
 
     - script: |
@@ -16,9 +60,9 @@ stages:
 
     - script: |
         if [ $(Build.SourceBranchName) == 'main' ]; then
-            java -jar veracode-wrapper.jar -vid $(VERACODE_API_KEY_ID) -vkey $(VERACODE_API_KEY_SECRET) -action uploadandscan -appname $(veracodeAppProfile) -createprofile true  -version $(build.buildNumber) -filepath $(caminhoPacote) -teams "$(veracodeTeams)"
+            java -jar veracode-wrapper.jar -vid $(VERACODE_API_KEY_ID) -vkey $(VERACODE_API_KEY_SECRET) -action uploadandscan -appname "$(Build.DefinitionName)" -createprofile true  -version $(build.buildNumber) -filepath $(caminhoPacote) -teams "$(veracodeTeams)"
           else
-            java -jar veracode-wrapper.jar -vid $(VERACODE_API_KEY_ID) -vkey $(VERACODE_API_KEY_SECRET) -action uploadandscan -appname $(veracodeAppProfile) -createprofile true  -version $(build.buildNumber) -filepath $(caminhoPacote) -teams "$(veracodeTeams)" -createsandbox true -sandboxname "$(Build.SourceBranchName)"
+            java -jar veracode-wrapper.jar -vid $(VERACODE_API_KEY_ID) -vkey $(VERACODE_API_KEY_SECRET) -action uploadandscan -appname "$(Build.DefinitionName)" -createprofile true  -version $(build.buildNumber) -filepath $(caminhoPacote) -teams "$(veracodeTeams)" -createsandbox true -sandboxname "$(Build.SourceBranchName)"
           fi
       displayName: 'Veracode U&S'
       continueOnError: true
@@ -33,7 +77,7 @@ stages:
       continueOnError: true
 
     - script: |
-        ./veracode scan --type directory --source ./terraform/ --format table
+        ./veracode scan --type directory --source ./ --format table
       displayName: 'Veracode IaC'
 
     - script: |
