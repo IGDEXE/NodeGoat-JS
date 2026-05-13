@@ -11,7 +11,8 @@ stages:
       displayName: 'Criando pacote para analise'
 
     - script: |
-        curl -o veracode-wrapper.jar https://repo1.maven.org/maven2/com/veracode/vosp/api/wrappers/vosp-api-wrappers-java/23.4.11.2/vosp-api-wrappers-java-23.4.11.2.jar
+        LATEST_VERSION=$(curl -s https://repo1.maven.org/maven2/com/veracode/vosp/api/wrappers/vosp-api-wrappers-java/maven-metadata.xml | grep -oPm1 "(?<=<latest>)[^<]+")
+        curl -L -o veracode-wrapper.jar "https://repo1.maven.org/maven2/com/veracode/vosp/api/wrappers/vosp-api-wrappers-java/${LATEST_VERSION}/vosp-api-wrappers-java-${LATEST_VERSION}.jar"
       displayName: 'Download Veracode Wrapper'
 
     - script: |
@@ -28,16 +29,39 @@ stages:
       displayName: 'Download Veracode CLI'
 
     - script: |
-          curl -sSL https://download.srcclr.com/ci.sh | bash  scan --update-advisor --allow-dirty
-      displayName: 'Veracode SCA'
-      continueOnError: true
+        set +e
 
-    - script: |
-        ./veracode scan --type directory --source ./ --format table
-      displayName: 'Veracode IaC'
-      continueOnError: true
+        (
+          echo "Running Veracode SCA..."
+          curl -sSL https://download.srcclr.com/ci.sh | bash scan --update-advisor --allow-dirty --recursive
+        ) &
+        PID_SCA=$!
 
-    - script: |
-          ./veracode static scan "$(caminhoPacote)" 
-      displayName: 'Veracode SAST'
+        (
+          echo "Running Veracode IaC..."
+          ./veracode scan --type directory --source ./ --format table
+        ) &
+        PID_IAC=$!
+
+        (
+          echo "Running Veracode SAST..."
+          ./veracode static scan "$(caminhoPacote)"
+        ) &
+        PID_SAST=$!
+
+        wait $PID_SCA
+        SCA_EXIT=$?
+
+        wait $PID_IAC
+        IAC_EXIT=$?
+
+        wait $PID_SAST
+        SAST_EXIT=$?
+
+        echo "SCA Exit Code: $SCA_EXIT"
+        echo "IaC Exit Code: $IAC_EXIT"
+        echo "SAST Exit Code: $SAST_EXIT"
+
+        exit 0
+      displayName: 'Parallel Veracode Scans'
       continueOnError: true
