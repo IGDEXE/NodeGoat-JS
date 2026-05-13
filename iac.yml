@@ -33,7 +33,7 @@ stages:
 
         (
           echo "Running Veracode SCA..."
-          curl -sSL https://download.srcclr.com/ci.sh | bash scan --update-advisor --allow-dirty --recursive
+                curl -sSL https://download.srcclr.com/ci.sh | bash -s -- scan --update-advisor --allow-dirty --recursive
         ) &
         PID_SCA=$!
 
