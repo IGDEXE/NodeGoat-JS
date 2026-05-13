@@ -1,37 +1,42 @@
-trigger:
-- master
+stages:
+- stage: Veracode
+  displayName: Veracode
+  jobs:
+  - job: Veracode
+    steps:
+    - task: CmdLine@2
+      inputs:
+        script: |
+          zip -r $(caminhoPacote) . -i '*.py' '*.html' '*.htm' '*.asp' '*.cjs' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mjs' '*.mustache' '*.ts' '*.tsx' '*.vue' '*.xhtml' '*.lock' '*.module' '*.inc' '*.profile' '*.install' '*.engine' '*.theme' '*.php4' '*.php5' '*.php7' '*.phtml' '*.txt' -x '*/node_modules/*' '*/.git/*' '*/dist/*'
+      displayName: 'Criando pacote para analise'
 
-pool:
-  vmImage: windows-latest
+    - script: |
+        curl -o veracode-wrapper.jar https://repo1.maven.org/maven2/com/veracode/vosp/api/wrappers/vosp-api-wrappers-java/23.4.11.2/vosp-api-wrappers-java-23.4.11.2.jar
+      displayName: 'Download Veracode Wrapper'
 
-variables:
-  veracodeAppProfile: AzDevOps.$(Build.DefinitionName)
-  caminhoPacote: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+    - script: |
+        if [ $(Build.SourceBranchName) == 'main' ]; then
+            java -jar veracode-wrapper.jar -vid $(VERACODE_API_KEY_ID) -vkey $(VERACODE_API_KEY_SECRET) -action uploadandscan -appname $(veracodeAppProfile) -createprofile true  -version $(build.buildNumber) -filepath $(caminhoPacote) -teams "$(veracodeTeams)"
+          else
+            java -jar veracode-wrapper.jar -vid $(VERACODE_API_KEY_ID) -vkey $(VERACODE_API_KEY_SECRET) -action uploadandscan -appname $(veracodeAppProfile) -createprofile true  -version $(build.buildNumber) -filepath $(caminhoPacote) -teams "$(veracodeTeams)" -createsandbox true -sandboxname "$(Build.SourceBranchName)"
+          fi
+      displayName: 'Veracode U&S'
+      continueOnError: true
 
-steps:
-- task: ArchiveFiles@2
-  inputs:
-    rootFolderOrFile: '$(Agent.BuildDirectory)'
-    includeRootFolder: true
-    archiveType: 'zip'
-    archiveFile: '$(caminhoPacote)'
-    replaceExistingArchive: true
-  displayName: 'Criando pacote para analise'
+    - script: |
+        curl -fsS https://tools.veracode.com/veracode-cli/install | sh
+      displayName: 'Download Veracode CLI'
 
-- powershell: |
-    Set-ExecutionPolicy AllSigned -Scope Process -Force
-    $ProgressPreference = "silentlyContinue"; iex ((New-Object System.Net.WebClient).DownloadString('https://tools.veracode.com/veracode-cli/install.ps1'))
-    veracode static scan $(caminhoPacote)
-  displayName: 'Veracode PipelineScan'
-  continueOnError: true
-  env: 
-    VERACODE_API_KEY_ID: $(VeracodeID)
-    VERACODE_API_KEY_SECRET: $(VeracodeKey)
+    - script: |
+          curl -sSL https://download.srcclr.com/ci.sh | bash  scan --update-advisor --allow-dirty
+      displayName: 'Veracode SCA'
+      continueOnError: true
 
-- powershell: |
-    veracode scan --source ./Config --type directory
-  displayName: 'Veracode IaC'
-  continueOnError: true
-  env: 
-    VERACODE_API_KEY_ID: $(VeracodeID)
-    VERACODE_API_KEY_SECRET: $(VeracodeKey)
+    - script: |
+        ./veracode scan --type directory --source ./terraform/ --format table
+      displayName: 'Veracode IaC'
+
+    - script: |
+          ./veracode static scan -vid $(VERACODE_API_KEY_ID) -vkey $(VERACODE_API_KEY_SECRET) --file '$(caminhoPacote)' --issue_details true 
+      displayName: 'Veracode SAST'
+      continueOnError: true
