@@ -63,5 +63,5 @@ stages:
         echo "SAST Exit Code: $SAST_EXIT"
 
         exit 0
-      displayName: 'Parallel Veracode Scans'
+      displayName: 'Veracode Parallel Scans'
       continueOnError: true
